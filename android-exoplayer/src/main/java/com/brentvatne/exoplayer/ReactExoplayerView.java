@@ -9,6 +9,8 @@ import android.os.Message;
 import android.text.TextUtils;
 import android.util.Log;
 import android.widget.FrameLayout;
+import android.app.Dialog;
+import android.view.ViewGroup;
 
 import com.brentvatne.react.R;
 import com.brentvatne.receiver.AudioBecomingNoisyReceiver;
@@ -88,6 +90,9 @@ class ReactExoplayerView extends FrameLayout implements
     private boolean isPaused = true;
     private boolean isBuffering;
     private float rate = 1f;
+
+    private Dialog fullScreenDialog;
+    private boolean exoPlayerFullscreen = false;
 
     // Props from React
     private Uri srcUri;
@@ -206,6 +211,7 @@ class ReactExoplayerView extends FrameLayout implements
             trackSelector = new DefaultTrackSelector(videoTrackSelectionFactory);
             player = ExoPlayerFactory.newSimpleInstance(getContext(), trackSelector, new DefaultLoadControl());
             player.addListener(this);
+            initFullscreenDialog();
             player.setMetadataOutput(this);
             exoPlayerView.setPlayer(player);
             audioBecomingNoisyReceiver.setListener(this);
@@ -505,7 +511,7 @@ class ReactExoplayerView extends FrameLayout implements
                 }
             }
         }
-        else if (e.type == ExoPlaybackException.TYPE_SOURCE) {
+         else if (e.type == ExoPlaybackException.TYPE_SOURCE) {
             ex = e.getSourceException();
             errorString = getResources().getString(R.string.unrecognized_media_format);
         }
@@ -636,5 +642,30 @@ class ReactExoplayerView extends FrameLayout implements
 
     public void setDisableFocus(boolean disableFocus) {
         this.disableFocus = disableFocus;
+    }
+
+    private void initFullscreenDialog() {
+        fullScreenDialog = new Dialog(getContext(), android.R.style.Theme_Black_NoTitleBar_Fullscreen) {
+            public void onBackPressed() {
+                if (exoPlayerFullscreen)
+                    closeFullscreenDialog();
+                super.onBackPressed();
+            }
+        };
+    }
+
+    public void openFullscreenDialog() {
+
+        ((ViewGroup) exoPlayerView.getParent()).removeView(exoPlayerView);
+        fullScreenDialog.addContentView(exoPlayerView, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        exoPlayerFullscreen = true;
+        fullScreenDialog.show();
+    }
+
+    public void closeFullscreenDialog() {
+
+        ((ViewGroup) exoPlayerView.getParent()).removeView(exoPlayerView);
+        exoPlayerFullscreen = false;
+        fullScreenDialog.dismiss();
     }
 }
